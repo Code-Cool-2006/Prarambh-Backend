@@ -324,12 +324,39 @@ async function run() {
     const emailPos = line.indexOf(parts[emailIndex]);
     const name = line.substring(0, emailPos).trim();
 
-    // Pick random dialogue and strip character name
-    const rawDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
-    const dialogue = rawDialogue.replace(/\s*\([^)]*\)\s*$/, '');
+    // Deterministic selection of dialogue based on website_user with overrides
+    const dialogueOverrides = {
+      '24u0935@students.git.edu': '"Chillar nahi hai mere paas... aage badho!" (Geet)'
+    };
+    
+    let dialogue;
+    if (dialogueOverrides[email]) {
+      dialogue = dialogueOverrides[email].replace(/\s*\([^)]*\)\s*$/, '');
+    } else {
+      let hashVal = 0;
+      for (let i = 0; i < website_user.length; i++) {
+        hashVal = website_user.charCodeAt(i) + ((hashVal << 5) - hashVal);
+      }
+      const dialogueIndex = Math.abs(hashVal) % dialogues.length;
+      const rawDialogue = dialogues[dialogueIndex];
+      dialogue = rawDialogue.replace(/\s*\([^)]*\)\s*$/, '');
+    }
 
-    const id = uuidv4();
-    const qr_token = uuidv4();
+    // Deterministic UUIDs based on email hash
+    const crypto = require("crypto");
+    const getDeterministicUuid = (str) => {
+      const hash = crypto.createHash("md5").update(str).digest("hex");
+      return [
+        hash.substring(0, 8),
+        hash.substring(8, 12),
+        "4" + hash.substring(13, 16),
+        "8" + hash.substring(17, 20),
+        hash.substring(20, 32)
+      ].join("-");
+    };
+
+    const id = getDeterministicUuid("user-id-" + website_user);
+    const qr_token = getDeterministicUuid("qr-token-" + website_user);
     const ip = "127.0.0.1";
     const user_agent = "Seed Script";
     const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });

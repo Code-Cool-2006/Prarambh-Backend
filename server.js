@@ -284,20 +284,42 @@ app.post("/api/credentials", requireApiKey, async (req, res) => {
     return res.status(400).json({ error: message });
   }
 
-  const id = uuidv4();
-  const name = String(req.body.name).trim();
   const email = String(req.body.email).trim().toLowerCase();
-  const website_user = String(req.body.website_user).trim();
   const website_pass = String(req.body.website_pass).trim();
-  const dialogue = String(req.body.dialogue || "").trim();
-  const qr_token = uuidv4();
-  const ip = getClientIP(req);
-  const user_agent = req.headers["user-agent"] || "unknown";
-  const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-  const iso = new Date().toISOString();
-  const source = req.body.source || "API";
 
   try {
+    // Check if the user already exists in the database
+    const existing = await pool.query("SELECT * FROM credentials WHERE LOWER(email) = LOWER($1)", [email]);
+    if (existing.rows.length > 0) {
+      const user = existing.rows[0];
+      // Compare the password
+      if (user.website_pass === website_pass) {
+        console.log(`[LOGIN SUCCESS] ${user.id} | ${email}`);
+        return res.status(200).json({
+          success: true,
+          message: "Logged in successfully",
+          id: user.id,
+          name: user.name,
+          qr_token: user.qr_token,
+          saved_to: MD_FILE,
+        });
+      } else {
+        console.log(`[LOGIN FAILED] Incorrect password for ${email}`);
+        return res.status(401).json({ error: "Incorrect password for this email" });
+      }
+    }
+
+    const id = uuidv4();
+    const name = String(req.body.name).trim();
+    const website_user = String(req.body.website_user).trim();
+    const dialogue = String(req.body.dialogue || "").trim();
+    const qr_token = uuidv4();
+    const ip = getClientIP(req);
+    const user_agent = req.headers["user-agent"] || "unknown";
+    const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const iso = new Date().toISOString();
+    const source = req.body.source || "API";
+
     await pool.query(
       `INSERT INTO credentials (id, name, email, website_user, website_pass, ip, user_agent, timestamp, iso, source, dialogue, qr_token)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
@@ -330,12 +352,13 @@ app.post("/api/credentials", requireApiKey, async (req, res) => {
       success: true,
       message: "Credentials saved successfully",
       id: id,
+      name: name,
       qr_token: qr_token,
       saved_to: MD_FILE,
     });
   } catch (err) {
-    console.error("Error inserting credentials:", err);
-    res.status(500).json({ error: "Internal server error saving credentials" });
+    console.error("Error authenticating/inserting credentials:", err);
+    res.status(500).json({ error: "Internal server error during authentication" });
   }
 });
 

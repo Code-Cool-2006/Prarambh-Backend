@@ -91,6 +91,7 @@ Srusti Vantagodi 	23u0802@students.git.edu 	prar100	KFnq@BU8
 Rohit Sontakki 	23u0767@students.git.edu	prar199	$fSIcKfU
 Harsh Arjunwadkar	24u0522@students.git.edu 	prar144	~$IGK5*&
 Aryan A Nerali	24u0552@students.git.edu	prar188	KorPmQ
+Rahul Jamgouda	25u0896@students.git.edu	prar995	rJ8b#M!2
 `;
 
 const dialogues = [
@@ -300,6 +301,28 @@ async function run() {
   const lines = rawUsers.split("\n");
   let newEntriesCount = 0;
 
+  const dialogueOverrides = {
+    '24u0935@students.git.edu': '"Chillar nahi hai mere paas... aage badho!" (Geet)'
+  };
+
+  // Filter out any dialogues that are explicitly overridden to keep dialogue pool unique
+  const availableDialogues = dialogues.filter(d => {
+    const stripped = d.replace(/\s*\([^)]*\)\s*$/, '');
+    return !Object.values(dialogueOverrides).some(val => val.includes(stripped));
+  });
+
+  // Seeded deterministic shuffle
+  let seedValue = 12345;
+  for (let i = availableDialogues.length - 1; i > 0; i--) {
+    seedValue = (seedValue * 9301 + 49297) % 233280;
+    const j = Math.floor((seedValue / 233280) * (i + 1));
+    const temp = availableDialogues[i];
+    availableDialogues[i] = availableDialogues[j];
+    availableDialogues[j] = temp;
+  }
+
+  let assignedCount = 0;
+
   for (let line of lines) {
     line = line.trim();
     if (!line || line.startsWith("Name")) continue;
@@ -324,22 +347,13 @@ async function run() {
     const emailPos = line.indexOf(parts[emailIndex]);
     const name = line.substring(0, emailPos).trim();
 
-    // Deterministic selection of dialogue based on website_user with overrides
-    const dialogueOverrides = {
-      '24u0935@students.git.edu': '"Chillar nahi hai mere paas... aage badho!" (Geet)'
-    };
-    
     let dialogue;
     if (dialogueOverrides[email]) {
       dialogue = dialogueOverrides[email].replace(/\s*\([^)]*\)\s*$/, '');
     } else {
-      let hashVal = 0;
-      for (let i = 0; i < website_user.length; i++) {
-        hashVal = website_user.charCodeAt(i) + ((hashVal << 5) - hashVal);
-      }
-      const dialogueIndex = Math.abs(hashVal) % dialogues.length;
-      const rawDialogue = dialogues[dialogueIndex];
+      const rawDialogue = availableDialogues[assignedCount % availableDialogues.length];
       dialogue = rawDialogue.replace(/\s*\([^)]*\)\s*$/, '');
+      assignedCount++;
     }
 
     // Deterministic UUIDs based on email hash

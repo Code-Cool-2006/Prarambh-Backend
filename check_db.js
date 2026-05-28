@@ -5,8 +5,8 @@ const pool = new Pool({
 });
 
 async function main() {
-  const res = await pool.query("SELECT id, name, email, dialogue, qr_token FROM credentials WHERE name ILIKE '%Chaitra%'");
-  console.log("DB Matches for 'Chaitra':", JSON.stringify(res.rows, null, 2));
+  const res = await pool.query("SELECT id, name, email, dialogue, qr_token FROM credentials WHERE name ILIKE '%Rahul%' OR name ILIKE '%Chaitra%'");
+  console.log("DB Matches for 'Rahul' or 'Chaitra':", JSON.stringify(res.rows, null, 2));
   await pool.end();
 }
 

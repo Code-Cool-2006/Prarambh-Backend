@@ -324,8 +324,9 @@ async function run() {
     const emailPos = line.indexOf(parts[emailIndex]);
     const name = line.substring(0, emailPos).trim();
 
-    // Pick random dialogue
-    const dialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
+    // Pick random dialogue and strip character name
+    const rawDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
+    const dialogue = rawDialogue.replace(/\s*\([^)]*\)\s*$/, '');
 
     const id = uuidv4();
     const qr_token = uuidv4();
